@@ -1,0 +1,20 @@
+include_once("inc.oAuth.php");
+include_once("inc.DropboxSync.php");
+
+
+$data = $oAuth->fetch('http://api.dropbox.com/0/token', array(
+	'email' => "email@email.com", 
+	'password' => "password"
+),'GET');
+
+if($data)
+{
+	$data = json_decode($data);
+	$oAuth->setToken($data["token"], $data["secret"]);
+}
+
+$DropboxSync = new DropboxSync($oAuth);
+
+echo "<pre>";
+
+$DropboxSync->synchronizuj("/remote/folder/","localfolder");
