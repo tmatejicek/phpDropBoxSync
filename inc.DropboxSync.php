@@ -17,6 +17,9 @@ class DropboxSync
 		$this->oauth = $oauth;
 	}
 	
+	/**
+	* Synchornizuje obsah složky na DropBoxu do lokálního umístění
+	*/
 	function synchronizuj($zdroj,$dst)
 	{
 		ini_set("max_execution_time", "3000");
@@ -42,16 +45,19 @@ class DropboxSync
 		fclose ($revisionFile);
 	}
 	
+	/**
+	* Obsluha synchronizace
+	*/
 	function me_synchronizuj($zdroj,$dst)
 	{
 		$metadata = $this->getMetaData($zdroj);
 	
 		if($metadata)
 		{
-			$metadata = json_decode($metadata);
+			$metadata = json_decode($metadata, true);
 			foreach($metadata["contents"] as $item)
 			{
-				if($item["is_dir"]==1) // create folder
+				if($item["is_dir"]==1 && substr(basename($item["path"]),0,1) !== ".") // create folder
 				{
 					$createFolder = "";
 					foreach(explode("/",$item["path"]) as $folder)
@@ -69,7 +75,15 @@ class DropboxSync
 				elseif($item["is_dir"]==0) // download file
 				{
 					echo $tmpFilePath = $dst.$item["path"];
-					if(!file_exists($tmpFilePath) || !isset($this->revision[$item["path"]]) || $this->revision[$item["path"]] != $item["revision"] || filesize($tmpFilePath)==0)
+					if(substr(basename($item["path"]),0,1) == ".")
+					{
+						echo " - SKIP (HIDDEN FILE)";
+					}
+					elseif($item["bytes"] > 10000000)
+					{
+						echo " - SKIP (BIG FILE)";
+					}
+					elseif(!file_exists($tmpFilePath) || !isset($this->revision[$item["path"]]) || $this->revision[$item["path"]] != $item["revision"] || filesize($tmpFilePath)==0)
 					{
 						$file = fopen($tmpFilePath, 'w') or die("can't create file");
 						$data = $this->getFile($item["path"]);
@@ -93,23 +107,29 @@ class DropboxSync
 		fclose ($revisionFile);
 	}
 	
+	/**
+	* Smaž lokální kopie soboru odstraněných z DropBoxu
+	*/
 	function RemoveDeletedFiles($dst)
 	{
 		foreach($this->revision as $soubor=>$revize)
 		{
 			if(!in_array($soubor,$this->overeneSoubory))
 			{
-				$souborMetadata = json_decode($this->getMetaData($soubor));
+				$souborMetadata = json_decode($this->getMetaData($soubor),true);
 				if(isset($souborMetadata["is_deleted"]) && $souborMetadata["is_deleted"]==true)
 				{
 					unset($this->revision[$soubor]);
-					unlink($dst.$soubor);
+					@unlink($dst.$soubor);
 					echo $dst.$soubor." - DELETED!\n";
 				}
 			}
 		}
 	}
 	
+	/**
+	* Smaže soubory které nemají revisi v DropBoxu
+	*/
 	function RemoveOldFiles($dst, $path="")
 	{
 		$path = $this->opravCestu($path);
@@ -138,6 +158,9 @@ class DropboxSync
 		}
 	}
 	
+	/**
+	* Smaže prázdné adresáře
+	*/
 	function RemoveEmptySubFolders($path)
 	{
 		$empty = true;
@@ -160,6 +183,9 @@ class DropboxSync
 		return $empty;
 	}
 	
+	/**
+	* Doplní na konec cesty lomítko, kdž je třeba
+	*/
 	function opravCestu($cesta)
 	{
 		if (substr($cesta,-1)<>"/")
@@ -182,7 +208,7 @@ class DropboxSync
         );
 
         $path = implode("/", array_map('rawurlencode', explode("/", $path)));
-        $response = $this->oauth->fetch('http://api.dropbox.com/0/metadata/dropbox/' . ltrim($path,'/'), $args);
+        $response = $this->oauth->fetch('https://api.dropbox.com/1/metadata/dropbox/' . ltrim($path,'/'), $args);
 
         return $response;
     }
@@ -196,7 +222,7 @@ class DropboxSync
     function getFile($path = '')
     {
         $path = implode("/", array_map('rawurlencode', explode("/", $path)));
-        return $this->oauth->fetch('http://api-content.dropbox.com/0/files/dropbox/' . ltrim($path,'/'));
+        return $this->oauth->fetch('https://api-content.dropbox.com/1/files/dropbox/' . ltrim($path,'/'));
     }
 }
 
