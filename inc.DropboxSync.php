@@ -245,23 +245,25 @@ function unicode_decode($string)
 	return preg_replace("/\\\u([0-9A-F]{4})/ie", "chr(base_convert(\"$1\",16,10))", $string);
 }
 
-function json_decode($json)
-{
-    $comment = false;
-    $out = '$x=';
-  
-    for ($i=0; $i<strlen($json); $i++)
-    {
-        if (!$comment)
-        {
-            if (($json[$i] == '{') || ($json[$i] == '['))       $out .= ' array(';
-            else if (($json[$i] == '}') || ($json[$i] == ']'))   $out .= ')';
-            else if ($json[$i] == ':')    $out .= '=>';
-            else                         $out .= $json[$i];          
-        }
-        else $out .= $json[$i];
-        if ($json[$i] == '"' && $json[($i-1)]!="\\")    $comment = !$comment;
-    }
-    eval($out . ';');
-    return $x;
+if (!function_exists('json_decode')) {
+	function json_decode($json, $forCompatibility)
+	{
+		$comment = false;
+		$out = '$x=';
+	  
+		for ($i=0; $i<strlen($json); $i++)
+		{
+			if (!$comment)
+			{
+				if (($json[$i] == '{') || ($json[$i] == '['))       $out .= ' array(';
+				else if (($json[$i] == '}') || ($json[$i] == ']'))   $out .= ')';
+				else if ($json[$i] == ':')    $out .= '=>';
+				else                         $out .= $json[$i];          
+			}
+			else $out .= $json[$i];
+			if ($json[$i] == '"' && $json[($i-1)]!="\\")    $comment = !$comment;
+		}
+		eval($out . ';');
+		return $x;
+	}
 }
