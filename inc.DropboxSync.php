@@ -218,6 +218,26 @@ class DropboxSync
         $path = implode("/", array_map('rawurlencode', explode("/", $path)));
         return $this->oauth->fetch('https://api-content.dropbox.com/1/files/dropbox/' . ltrim($path,'/'));
     }
+    
+    /**
+    * TODO !!! NOT TESTED!!!
+    */
+    function upload($filename, $remoteDir='/')
+    {
+        if (!file_exists($filename) or !is_file($filename) or !is_readable($filename))
+        {
+            die("File '$filename' does not exist or is not readable.");
+        }
+        
+        $data = $this->oauth->fetch('https://api-content.dropbox.com/0/files/dropbox/' . ltrim($remoteDir,'/'), array('file'=>$filename, 'parent_rev'=>$this->revision[$remoteDir.$filename]), true);
+
+        if (strpos($data, 'HTTP/1.1 302 FOUND') === false)
+        {
+            die('Upload failed!');
+        }
+            
+        return true;
+    }
 }
 
 function unicode_decode($string)
