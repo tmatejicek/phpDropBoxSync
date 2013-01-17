@@ -203,14 +203,8 @@ class DropboxSync
 	*/
     function getMetaData($path, $list = true)
     {
-        $args = array(
-            'list' => $list,
-        );
-
         $path = implode("/", array_map('rawurlencode', explode("/", $path)));
-        $response = $this->oauth->fetch('https://api.dropbox.com/1/metadata/dropbox/' . ltrim($path,'/'), $args);
-
-        return $response;
+        return $this->oauth->fetch('https://api.dropbox.com/1/metadata/dropbox/' . ltrim($path,'/'), array('list' => $list));
     }
     
     /**
