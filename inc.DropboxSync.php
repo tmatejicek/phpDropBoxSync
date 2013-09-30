@@ -50,7 +50,15 @@ class DropboxSync
 	*/
 	function me_synchronizuj($zdroj,$dst)
 	{
-		$metadata = $this->getMetaData($zdroj);
+		if(isset($_SESSION["metaData"][$zdroj]))
+		{
+			$metadata = $_SESSION["metaData"][$zdroj];
+		}
+		else
+		{
+			$metadata = $this->getMetaData($zdroj);
+			$_SESSION["metaData"][$zdroj] = $metadata;
+		}
 	
 		if($metadata)
 		{
@@ -74,7 +82,10 @@ class DropboxSync
 				}
 				elseif($item["is_dir"]==0) // download file
 				{
-					echo $tmpFilePath = $dst.$item["path"];
+					$tmpFilePath = $dst.$item["path"];
+					
+					echo date("Y-m-d H:i:s"). substr((string)microtime(), 1, 6)." ".$tmpFilePath;
+					
 					if(substr(basename($item["path"]),0,1) == ".")
 					{
 						echo " - SKIP (HIDDEN FILE)";
@@ -121,7 +132,11 @@ class DropboxSync
 				{
 					unset($this->revision[$soubor]);
 					@unlink($dst.$soubor);
-					echo $dst.$soubor." - DELETED!\n";
+					echo date("Y-m-d H:i:s"). substr((string)microtime(), 1, 6)." ".$dst.$soubor." - DELETED!\n";
+		
+					$revisionFile = fopen($dst."/revision.txt", 'w') or die("can't create revision file");
+					fwrite ($revisionFile, serialize($this->revision));
+					fclose ($revisionFile);
 				}
 			}
 		}
@@ -149,7 +164,7 @@ class DropboxSync
 						if(!isset($this->revision[$path.$item]))
 						{
 							unlink($dst.$path.$item);
-							echo $dst.$path.$item." - DELETED!\n";
+							echo date("Y-m-d H:i:s"). substr((string)microtime(), 1, 6)." ".$dst.$path.$item." - DELETED!\n";
 						}
 					}
 				}
