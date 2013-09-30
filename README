@@ -1,16 +1,43 @@
+<?php
+
 include_once("inc.oAuth.php");
 include_once("inc.DropboxSync.php");
 
+session_start();
+$oAuth = new oAuth(__consumer_key__,__consumer_secret__);
 
-$data = $oAuth->fetch('http://api.dropbox.com/0/token', array(
-	'email' => "email@email.com", 
-	'password' => "password"
-),'GET');
-
-if($data)
+if(file_exists("access_token"))
 {
-	$data = json_decode($data);
-	$oAuth->setToken($data["token"], $data["secret"]);
+	parse_str(file_get_contents("access_token", $data),$accessToken);
+	$oAuth->setToken($accessToken['oauth_token'], $accessToken['oauth_token_secret']);
+}
+else
+{
+	if(!count($_GET))
+	{
+		$data = $oAuth->fetch('https://api.dropbox.com/1/oauth/request_token', array(),'GET');
+
+		if($data)
+		{
+			parse_str($data,$requestToken);
+	
+			$_SESSION['request_token_key'] = $requestToken['oauth_token'];
+			$_SESSION['request_token_secret'] = $requestToken['oauth_token_secret'];
+	
+			$actual_link = "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+	
+			header('Location: https://www.dropbox.com/1/oauth/authorize?oauth_token='.$requestToken['oauth_token'].'&oauth_callback='.$actual_link,  TRUE, 301);
+			exit;
+		}
+	}
+	else
+	{
+			$oAuth->setToken($_SESSION['request_token_key'], $_SESSION['request_token_secret']);
+		
+			$data = $oAuth->fetch('https://api.dropbox.com/1/oauth/access_token', array(),'GET');
+		
+			file_put_contents("access_token", $data);
+	}
 }
 
 $DropboxSync = new DropboxSync($oAuth);
