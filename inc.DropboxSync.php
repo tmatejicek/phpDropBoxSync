@@ -40,7 +40,7 @@ class DropboxSync
 		// Odstraní prázdné složky
 		$this->RemoveEmptySubFolders($dst);
 		
-		$revisionFile = fopen($revisionPath, 'w') or die("can't create file");
+		$revisionFile = fopen($revisionPath, 'w') or die("can't create revision file");
 		fwrite ($revisionFile, serialize($this->revision));
 		fclose ($revisionFile);
 	}
@@ -99,12 +99,12 @@ class DropboxSync
 					$this->overeneSoubory[] = $item["path"];
 					echo "\n";
 				}
+		
+				$revisionFile = fopen($dst."/revision.txt", 'w') or die("can't create revision file");
+				fwrite ($revisionFile, serialize($this->revision));
+				fclose ($revisionFile);
 			}
 		}
-		
-		$revisionFile = fopen($dst."/revision.txt", 'w') or die("can't create file");
-		fwrite ($revisionFile, serialize($this->revision));
-		fclose ($revisionFile);
 	}
 	
 	/**
